@@ -13,7 +13,7 @@ WeMo.SearchTimeout = 5000; /* msec */
 WeMo.ST = 'urn:Belkin:service:basicevent:1';
 
 WeMo.Search = function(friendlyName, callback) {
-	if (friendlyName !== undefined) {
+	if (friendlyName) {
 		return WeMo.SearchByFriendlyName(friendlyName, callback);
 	}
 
@@ -32,19 +32,28 @@ WeMo.Search = function(friendlyName, callback) {
 			});
 		}
 	});
+	client.interval = setInterval(function(){
+		client.search(WeMo.ST);
+	}, 1000);
 	client.search(WeMo.ST);
+
 	return client;
 };
 
 WeMo.SearchByFriendlyName = function(name, callback) {
+	var sentResponse = false
 	var client = WeMo.Search();
 	var timer = setTimeout(function() {
 		callback('WeMoSearchTimeoutError', null);
 		client._stop();
 	}, WeMo.SearchTimeout);
 	client.on('found', function(device) {
+		if (sentResponse) return;
 		if (device.friendlyName === name) {
 			clearTimeout(timer);
+			clearInterval(client.interval);
+			sentResponse = true
+			client.interval = null;
 			callback(null, device);
 			client._stop();
 		}
